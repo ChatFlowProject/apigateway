@@ -1,3 +1,79 @@
+server:
+  port: 8000
+
+eureka:
+  instance:
+    hostname: localhost
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 20
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
 spring:
   application:
     name: apigateway-service
+  cloud:
+    gateway:
+      httpclient:
+        ssl:
+          use-insecure-trust-manager: true
+      default-filters: # default-filter를 global filter으로 사용
+        - name: GlobalFilter # class 이름
+          args: # 위의 클래스에서 상속받은 AbstractGatewayFilterFactory의 제네릭에 표시된 클래스의 파라미터들
+            baseMessage: Spring Cloud Gateway Global Filter
+            preLogger: true
+            postLogger: true
+      routes:
+        - id: dashboard
+          uri: https://dashboard.flowchat.shop:30000/
+          predicates: # 조건에 해당
+            - Path=/dashboard/** # localhost:8000/dashboard로 요청에 해당하는 경우
+            - Method=GET # 위의 요청이 GET으로 온 경우
+          filters: # predicates에 해당하는 요청의 경우 아래의 필터를 처리하겠다는 뜻
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/dashboard/(?<segment>.*), /$\{segment} # `/dashboard/(?<segment>.*)`경로를 `/$\{segment}`로 변경하겠다는 뜻
+        - id: member-service
+          uri: lb://MEMBER-SERVICE
+          predicates:
+            - Path=/member-service/sign-up
+            - Method=POST
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/member-service/(?<segment>.*), /$\{segment}
+        - id: member-service
+          uri: lb://MEMBER-SERVICE
+          predicates:
+            - Path=/member-service/sign-in
+            - Method=POST
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/member-service/(?<segment>.*), /$\{segment}
+        - id: member-service
+          uri: lb://MEMBER-SERVICE
+          predicates:
+            - Path=/member-service/common/health-check
+            - Method=GET
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/member-service/(?<segment>.*), /$\{segment}
+        - id: member-service
+          uri: lb://MEMBER-SERVICE
+          predicates:
+            - Path=/member-service/**
+#            - Method=GET
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/member-service/(?<segment>.*), /$\{segment}
+            - AuthorizationHeaderFilter
+#        - id: member-service
+#          uri: lb://MEMBER-SERVICE
+#          predicates:
+#            - Path=/member-service-swagger
+#            - Method=GET
+#          filters:
+#            - RemoveRequestHeader=Cookie
+#            - RewritePath=/member-service-swagger, /swagger-ui/index.html
+#            - LoggingFilter
