@@ -4,13 +4,13 @@ server:
 eureka:
   instance:
     hostname: localhost
-    lease-renewal-interval-in-seconds: 10
-    lease-expiration-duration-in-seconds: 20
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
   client:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: http://flowchat.shop:30001/eureka
 
 spring:
   application:
@@ -27,23 +27,16 @@ spring:
             preLogger: true
             postLogger: true
       routes:
-        - id: dashboard
-          uri: https://dashboard.flowchat.shop:30000/
+        - id: member-service-sign-up
+          uri: lb://MEMBER-SERVICE
           predicates: # 조건에 해당
-            - Path=/dashboard/** # localhost:8000/dashboard로 요청에 해당하는 경우
-            - Method=GET # 위의 요청이 GET으로 온 경우
+            - Path=/member-service/sign-up # localhost:8000/swagger 요청에 해당하는 경우
+            - Method=POST # 위의 요청이 GET으로 온 경우
           filters: # predicates에 해당하는 요청의 경우 아래의 필터를 처리하겠다는 뜻
             - RemoveRequestHeader=Cookie
-            - RewritePath=/dashboard/(?<segment>.*), /$\{segment} # `/dashboard/(?<segment>.*)`경로를 `/$\{segment}`로 변경하겠다는 뜻
-        - id: member-service
-          uri: lb://MEMBER-SERVICE
-          predicates:
-            - Path=/member-service/sign-up
-            - Method=POST
-          filters:
-            - RemoveRequestHeader=Cookie
             - RewritePath=/member-service/(?<segment>.*), /$\{segment}
-        - id: member-service
+#            - LoggingFilter
+        - id: member-service-sign-in
           uri: lb://MEMBER-SERVICE
           predicates:
             - Path=/member-service/sign-in
@@ -51,7 +44,7 @@ spring:
           filters:
             - RemoveRequestHeader=Cookie
             - RewritePath=/member-service/(?<segment>.*), /$\{segment}
-        - id: member-service
+        - id: member-service-health-check
           uri: lb://MEMBER-SERVICE
           predicates:
             - Path=/member-service/common/health-check
@@ -68,12 +61,3 @@ spring:
             - RemoveRequestHeader=Cookie
             - RewritePath=/member-service/(?<segment>.*), /$\{segment}
             - AuthorizationHeaderFilter
-#        - id: member-service
-#          uri: lb://MEMBER-SERVICE
-#          predicates:
-#            - Path=/member-service-swagger
-#            - Method=GET
-#          filters:
-#            - RemoveRequestHeader=Cookie
-#            - RewritePath=/member-service-swagger, /swagger-ui/index.html
-#            - LoggingFilter
